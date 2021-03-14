@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "gtk4-helper",
+    "gtk4-helper-macros",
+    "examples",
+]

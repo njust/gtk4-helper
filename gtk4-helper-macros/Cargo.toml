@@ -1,0 +1,15 @@
+[package]
+name = "gtk4-helper-macros"
+version = "0.1.0"
+authors = ["Nico Just <mail@njust.de>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0.9"
+proc-macro2 = "1.0.24"
+syn = {version = "1.0.63", features = ["full"]}
+static_assertions = "1.1.0"
+anyhow = "1.0.38"
