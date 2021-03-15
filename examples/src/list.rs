@@ -4,7 +4,17 @@ use gtk4_helper::{
     gio,
     list::prelude::*,
 };
-use gtk4_helper::gio::glib::Object;
+use glib::Object;
+use gtk4_helper::glib::{Value, Type};
+use gtk4_helper::glib::value::FromValueOptional;
+
+#[model]
+pub struct Address {
+    #[param]
+    street: String,
+    #[param(min = "0", max = "99999")]
+    plz: i32,
+}
 
 #[model]
 pub struct Person {
@@ -18,20 +28,26 @@ pub struct Person {
     pub savings: f64,
     #[param]
     pub happy: bool,
+    #[param]
+    pub address: Address,
 }
 
 pub fn list() -> gtk4::ScrolledWindow {
     let list_store = gio::ListStore::new(Person::static_type());
 
     for i in 30..100 {
-        let h = Person {
+        let person = Person {
             name: format!("Name {}", i),
             sure_name: Some(format!("Surname {}", i)),
             age: i,
             savings: i as f64 + 10.1,
-            happy: i % 2 == 0
+            happy: i % 2 == 0,
+            address: Address {
+                street: "Musterstr".to_string(),
+                plz: 70599
+            }
         };
-        list_store.append(&h.to_object());
+        list_store.append(&person.to_object());
     }
 
     let selection_model = gtk4::SingleSelection::new(Some(&list_store));

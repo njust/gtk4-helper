@@ -192,7 +192,18 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
                     )
                 )
         }
-        t => panic!("Unsupported type: {}", t)
+        _ => {
+            let ty = syn::Ident::new(&field.field_mapper,  proc_macro2::Span::call_site());
+            quote!(
+                    glib::ParamSpec::object(
+                        #field_name,
+                        #field_name,
+                        #field_name,
+                        #ty::static_type(),
+                        glib::ParamFlags::READWRITE,
+                    )
+                )
+        }
     }
 }
 
@@ -215,21 +226,16 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut property_setter = vec![];
 
     for field in &fields {
+        let field_ident = syn::Ident::new(&field.name,  proc_macro2::Span::call_site());
+
         if !field.attributes.contains_key("param") {
+            property_setter.push(quote!(
+                #field_ident: Default::default()
+            ));
             continue;
         }
-
-        let field_ident = syn::Ident::new(&field.name,  proc_macro2::Span::call_site());
         let field_name = &field.name.replace("_", "-");
         let field_type = syn::Ident::new(&field.field_mapper, proc_macro2::Span::call_site());
-
-        struct_data.push(quote!(
-            (&#field_name, &self.#field_ident)
-        ));
-
-        field_constants.push(quote!(
-            pub const #field_ident: &'static str = #field_name;
-        ));
 
         let optional = field.field_type == "Option";
         if optional {
@@ -241,6 +247,15 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 #field_ident: obj.get_property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch").unwrap()
             ));
         }
+
+
+        struct_data.push(quote!(
+            (&#field_name, &self.#field_ident)
+        ));
+
+        field_constants.push(quote!(
+            pub const #field_ident: &'static str = #field_name;
+        ));
 
         params_desc.push(param_desc_for_field(&field));
     }
@@ -335,6 +350,27 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
         impl From<#ty> for glib::Object {
             fn from(o: #ty) -> Self {
                 #ty::to_object(&o)
+            }
+        }
+
+        impl ToValue for #ty {
+            fn to_value(&self) -> Value {
+                self.to_object().to_value()
+            }
+            fn to_value_type(&self) -> Type {
+                #ty::static_type()
+            }
+        }
+
+        impl<'a> FromValueOptional<'a> for #ty {
+            unsafe fn from_value_optional(value: &'a Value) -> Option<Self> {
+                value.downcast_ref::<glib::Object>().and_then(|s| s.get()).and_then(|o| Some(#ty::from_object(&o)))
+            }
+        }
+
+        impl StaticType for #ty {
+            fn static_type() -> Type {
+                #ty::static_type()
             }
         }
 
