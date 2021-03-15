@@ -7,8 +7,8 @@ use syn;
 use anyhow::anyhow;
 
 use std::collections::HashMap;
-use syn::__private::TokenStream2;
 use std::str::FromStr;
+use syn::__private::TokenStream2;
 
 #[derive(Debug)]
 struct FieldData {
@@ -30,6 +30,8 @@ fn get_attr_list(field: &syn::Field) -> HashMap<String, HashMap<String, String>>
         if let Ok(syn::Meta::List(l) ) = attr.parse_meta() {
             let kvp = get_str_lit_list(&l);
             attrs.insert(name, kvp);
+        }else {
+            attrs.insert(name, HashMap::new());
         }
     }
     attrs
@@ -110,7 +112,7 @@ fn get_min_max<T: FromStr>(field: &FieldData) -> anyhow::Result<(T, T)> {
 }
 
 fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
-    let field_name = &field.name;
+    let field_name = &field.name.replace("_", "-");
     match field.field_mapper.as_str() {
         "String" => {
             quote!(
@@ -204,25 +206,41 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(item as syn::ItemStruct);
     let ty = &input.ident;
     let fields = get_fields(&input);
+    let imp_mod_ident = syn::Ident::new(&format!("imp_{}", ty.to_string()),  proc_macro2::Span::call_site());
+    let wrp_mod_ident = syn::Ident::new(&format!("wrp_{}", ty.to_string()),  proc_macro2::Span::call_site());
 
     let mut struct_data = vec![];
     let mut field_constants = vec![];
     let mut params_desc = vec![];
+    let mut property_setter = vec![];
+
     for field in &fields {
         if !field.attributes.contains_key("param") {
             continue;
         }
 
         let field_ident = syn::Ident::new(&field.name,  proc_macro2::Span::call_site());
-        let field_name = &field.name;
+        let field_name = &field.name.replace("_", "-");
+        let field_type = syn::Ident::new(&field.field_mapper, proc_macro2::Span::call_site());
 
         struct_data.push(quote!(
             (&#field_name, &self.#field_ident)
         ));
 
         field_constants.push(quote!(
-            const #field_ident: &'static str = #field_name;
+            pub const #field_ident: &'static str = #field_name;
         ));
+
+        let optional = field.field_type == "Option";
+        if optional {
+            property_setter.push(quote!(
+                #field_ident: obj.get_property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch")
+            ));
+        }else {
+            property_setter.push(quote!(
+                #field_ident: obj.get_property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch").unwrap()
+            ));
+        }
 
         params_desc.push(param_desc_for_field(&field));
     }
@@ -231,7 +249,7 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #[derive(DataModel, Default)]
         #input
 
-        mod imp {
+        mod #imp_mod_ident {
             use super::*;
             #[derive(Default, DataModel)]
             pub struct #ty {
@@ -241,13 +259,13 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
             #[glib::object_subclass]
             impl ObjectSubclass for #ty {
                 const NAME: &'static str = stringify!(#ty);
-                type Type = super::wrp::#ty;
+                type Type = super::#wrp_mod_ident::#ty;
                 type ParentType = glib::Object;
                 type Interfaces = ();
             }
         }
 
-        impl ObjectImpl for imp::#ty {
+        impl ObjectImpl for #imp_mod_ident::#ty {
             fn properties() -> &'static [glib::ParamSpec] {
                 use once_cell::sync::Lazy;
                 static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
@@ -269,10 +287,10 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
             // }
         }
 
-        mod wrp {
+        mod #wrp_mod_ident {
             use super::*;
             glib::wrapper! {
-                pub struct #ty(ObjectSubclass<imp::#ty>);
+                pub struct #ty(ObjectSubclass<#imp_mod_ident::#ty>);
             }
 
             impl #ty {
@@ -287,17 +305,38 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 vec![#(#params_desc),*]
             }
 
-            pub fn to_object(&self) -> wrp::#ty {
-                wrp::#ty::new(&[#(#struct_data),*])
+            pub fn new_object(properties: &[(&str, &dyn ToValue)]) -> glib::Object {
+                #wrp_mod_ident::#ty::new(properties).upcast::<glib::Object>()
+            }
+
+            pub fn to_object(&self) -> glib::Object {
+                #wrp_mod_ident::#ty::new(&[#(#struct_data),*]).upcast::<glib::Object>()
             }
 
             pub fn static_type() -> glib::types::Type {
-                wrp::#ty::static_type()
+                #wrp_mod_ident::#ty::static_type()
+            }
+
+            pub fn from_object(obj: &glib::Object) -> #ty {
+                Self {
+                    #(#property_setter),*
+                }
             }
 
             #(#field_constants)*
         }
 
+        impl From<glib::Object> for #ty {
+            fn from(obj: Object) -> Self {
+                #ty::from_object(&obj)
+            }
+        }
+
+        impl From<#ty> for glib::Object {
+            fn from(o: #ty) -> Self {
+                #ty::to_object(&o)
+            }
+        }
 
     ).into()
 }

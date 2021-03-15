@@ -4,50 +4,53 @@ use gtk4_helper::{
     gio,
     list::prelude::*,
 };
+use gtk4_helper::gio::glib::Object;
 
 #[model]
-pub struct Hudel  {
-    #[param()]
-    name: String,
-    #[param()]
-    gerda: Option<String>,
+pub struct Person {
+    #[param]
+    pub name: String,
+    #[param]
+    pub sure_name: Option<String>,
     #[param(min = "0", max = "100")]
-    count: i32,
-    #[param(min = "0.0", max = "1000")]
-    double: f64,
-    #[param()]
-    even: bool,
+    pub age: i32,
+    #[param(min = "0.0", max = "100000")]
+    pub savings: f64,
+    #[param]
+    pub happy: bool,
 }
 
 pub fn list() -> gtk4::ScrolledWindow {
-    let m = gio::ListStore::new(Hudel::static_type());
-    for i in 0..100 {
-        let h = Hudel {
-            name: format!("gerda {}", i),
-            gerda: if i % 2 == 0 { None } else { Some(format!("hudel {}", i)) },
-            count: i,
-            double: 0.1,
-            even: i % 2 == 0
+    let list_store = gio::ListStore::new(Person::static_type());
+
+    for i in 30..100 {
+        let h = Person {
+            name: format!("Name {}", i),
+            sure_name: Some(format!("Surname {}", i)),
+            age: i,
+            savings: i as f64 + 10.1,
+            happy: i % 2 == 0
         };
-        m.append(&h.to_object());
+        list_store.append(&h.to_object());
     }
 
-    let s = gtk4::SingleSelection::new(Some(&m));
-    let f = gtk4::SignalListItemFactory::new();
-    f.connect_bind(|_,b|{
+    let selection_model = gtk4::SingleSelection::new(Some(&list_store));
+    let item_factory = gtk4::SignalListItemFactory::new();
+    item_factory.connect_bind(|_, b| {
         if let Some(item) = b.get_item() {
             let e = gtk4::Entry::new();
-            item.bind_property(Hudel::even, &e, "text")
+            item.bind_property(Person::name, &e, "text")
                 .flags(glib::BindingFlags::DEFAULT |glib::BindingFlags::SYNC_CREATE | glib::BindingFlags::BIDIRECTIONAL).build();
             b.set_child(Some(&e));
         }
     });
-    let list = gtk4::ListViewBuilder::new()
-        .factory(&f)
-        .model(&s)
+
+    let list_view = gtk4::ListViewBuilder::new()
+        .factory(&item_factory)
+        .model(&selection_model)
         .build();
 
     let sw = gtk4::ScrolledWindow::new();
-    sw.set_child(Some(&list));
+    sw.set_child(Some(&list_view));
     sw
 }
