@@ -2,7 +2,7 @@ use std::cell::{RefCell, Ref};
 use std::rc::Rc;
 use std::pin::Pin;
 use futures::Future;
-use glib::{MainContext, Sender};
+use crate::glib::{MainContext, Sender, self};
 use gtk4::{Orientation};
 
 pub enum WidgetMsg<Widget: CustomWidget> {

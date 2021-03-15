@@ -10,25 +10,25 @@ use gtk4_helper::glib::value::FromValueOptional;
 
 #[model]
 pub struct Address {
-    #[param]
+    #[field]
     street: String,
-    #[param(min = "0", max = "99999")]
+    #[field(min = "0", max = "99999")]
     plz: i32,
 }
 
 #[model]
 pub struct Person {
-    #[param]
+    #[field]
     pub name: String,
-    #[param]
+    #[field]
     pub sure_name: Option<String>,
-    #[param(min = "0", max = "100")]
+    #[field(min = "0", max = "100")]
     pub age: i32,
-    #[param(min = "0.0", max = "100000")]
+    #[field(min = "0.0", max = "100000")]
     pub savings: f64,
-    #[param]
+    #[field]
     pub happy: bool,
-    #[param]
+    #[field]
     pub address: Address,
 }
 

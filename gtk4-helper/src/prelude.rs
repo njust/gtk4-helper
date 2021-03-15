@@ -4,7 +4,7 @@ pub use gtk4::{
     prelude::*
 };
 
-pub use glib::{
+pub use crate::glib::{
     Sender
 };
 

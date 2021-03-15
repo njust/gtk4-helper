@@ -10,6 +10,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use syn::__private::TokenStream2;
 
+const FIELD_ATTRIBUTE: &'static str = "field";
+
 #[derive(Debug)]
 struct FieldData {
     name: String,
@@ -105,7 +107,7 @@ fn generic_arg_to_string(ga: &syn::GenericArgument) -> String {
 // /home/nico/.cargo/git/checkouts/gtk-rs-48ef14c1f17c79fb/4afd471/glib/src/subclass/mod.rs
 
 fn get_min_max<T: FromStr>(field: &FieldData) -> anyhow::Result<(T, T)> {
-    let attributes = field.attributes.get("param").expect("No attributes for param");
+    let attributes = field.attributes.get(FIELD_ATTRIBUTE).expect("No attributes for param");
     let min = attributes.get("min").expect("No min value").parse::<T>().map_err(|_|anyhow!("Invalid min value"))?;
     let max = attributes.get("max").expect("No max value").parse::<T>().map_err(|_|anyhow!("Invalid max value"))?;
     Ok((min, max))
@@ -207,7 +209,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
     }
 }
 
-#[proc_macro_derive(DataModel, attributes(param))]
+#[proc_macro_derive(DataModel, attributes(field))]
 pub fn data_model_meta(_: TokenStream) -> TokenStream {
     return quote!().into()
 }
@@ -228,7 +230,7 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
     for field in &fields {
         let field_ident = syn::Ident::new(&field.name,  proc_macro2::Span::call_site());
 
-        if !field.attributes.contains_key("param") {
+        if !field.attributes.contains_key(FIELD_ATTRIBUTE) {
             property_setter.push(quote!(
                 #field_ident: Default::default()
             ));
