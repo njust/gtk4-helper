@@ -1,6 +1,6 @@
 use gtk4_helper::{
     gtk4::{self, prelude::*},
-    glib::{self, clone},
+    glib::{self},
     gio
 };
 
@@ -9,19 +9,20 @@ use gtk4_helper::gtk4::{Orientation, NONE_EXPRESSION, NONE_SORTER, PropertyExpre
 use crate::manual_model::{
     ManualPersonObject, ManualAddressObject
 };
+use std::rc::Rc;
 
 #[allow(dead_code)]
 pub struct Test {
-    address_exp: PropertyExpression,
-    street_exp: PropertyExpression,
-    name_exp: PropertyExpression,
+    address_exp: Rc<PropertyExpression>,
+    street_exp: Rc<PropertyExpression>,
+    name_exp: Rc<PropertyExpression>,
 }
 
 impl Test {
     pub fn new() -> Self {
-        let address_exp = gtk4::PropertyExpression::new(ManualPersonObject::static_type(), NONE_EXPRESSION, "address");
-        let name_exp = gtk4::PropertyExpression::new(ManualPersonObject::static_type(), NONE_EXPRESSION, "name");
-        let street_exp = gtk4::PropertyExpression::new(ManualAddressObject::static_type(), Some(&address_exp), "street");
+        let address_exp = Rc::new(gtk4::PropertyExpression::new(ManualPersonObject::static_type(), NONE_EXPRESSION, "address"));
+        let name_exp = Rc::new(gtk4::PropertyExpression::new(ManualPersonObject::static_type(), NONE_EXPRESSION, "name"));
+        let street_exp = Rc::new(gtk4::PropertyExpression::new(ManualAddressObject::static_type(), Some(address_exp.as_ref()), "street"));
 
         Self {
             address_exp,
@@ -30,8 +31,8 @@ impl Test {
         }
     }
 
-    fn get_exp(&self) -> &PropertyExpression {
-        &self.street_exp
+    fn get_exp(&self) -> Rc<PropertyExpression> {
+        self.street_exp.clone()
     }
 
     pub fn list(&self) -> gtk4::Box {
@@ -52,20 +53,21 @@ impl Test {
             sort_view.set_sorter(Some(&so));
         }
 
-        let exp = self.get_exp();
         let column_factory = gtk4::SignalListItemFactory::new();
-        column_factory.connect_bind(clone!(@strong exp => move |_, item| {
+        let exp = self.get_exp();
+        column_factory.connect_bind(move |_, item| {
             if let Some(obj) = item.get_item() {
                 let lbl = gtk4::Label::new(None);
                 exp.bind(lbl.upcast_ref(), "label", Some(&obj));
                 item.set_child(Some(&lbl));
             }
-        }));
+        });
 
+        let exp = self.get_exp();
         column_view.append_column(&gtk4::ColumnViewColumnBuilder::new()
             .title("Name")
             .factory(&column_factory)
-            .sorter(&gtk4::StringSorter::new(Some(self.get_exp())))
+            .sorter(&gtk4::StringSorter::new(Some(exp.as_ref())))
             .build()
         );
 
