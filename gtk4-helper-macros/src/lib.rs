@@ -104,7 +104,7 @@ fn generic_arg_to_string(ga: &syn::GenericArgument) -> String {
     return String::new();
 }
 
-// /home/nico/.cargo/git/checkouts/gtk-rs-48ef14c1f17c79fb/4afd471/glib/src/subclass/mod.rs
+// ManualPersonObjecte/nico/.cargo/git/checkouts/gtk-rs-48ef14c1f17c79fb/4afd471/glib/src/subclass/mod.rs
 
 fn get_min_max<T: FromStr>(field: &FieldData) -> anyhow::Result<(T, T)> {
     let attributes = field.attributes.get(FIELD_ATTRIBUTE).expect("No attributes for param");
@@ -263,14 +263,14 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     return quote! (
-        #[derive(DataModel, Default)]
+        #[derive(DataModel, Default, Debug)]
         #input
 
         mod #imp_mod_ident {
             use super::*;
             #[derive(Default, DataModel)]
             pub struct #ty {
-                pub __data: RefCell<HashMap<String, glib::Value>>,
+                pub data: RefCell<HashMap<String, glib::Value>>,
             }
 
             #[glib::object_subclass]
@@ -292,16 +292,12 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             fn set_property(&self, _obj: &Self::Type, id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
-                self.__data.borrow_mut().insert(pspec.get_name().to_string(), value.to_owned());
+                self.data.borrow_mut().insert(pspec.get_name().to_string(), value.to_owned());
             }
 
             fn get_property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
-                self.__data.borrow().get(pspec.get_name()).map(|v| v.to_owned()).ok_or(()).clone().unwrap()
+                self.data.borrow().get(pspec.get_name()).map(|v| v.to_owned()).ok_or(()).clone().unwrap()
             }
-
-            // fn constructed(&self, obj: &Self::Type) {
-            //     self.parent_constructed(obj);
-            // }
         }
 
         mod #wrp_mod_ident {

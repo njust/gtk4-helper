@@ -10,11 +10,6 @@ pub enum CounterWidgetMsg {
     Dec,
 }
 
-#[derive(Clone)]
-pub enum CounterWidgetOutMsg {
-    Changed(i32)
-}
-
 pub struct CounterWidget {
     counter: i32,
     lbl: gtk4::Label,
@@ -22,7 +17,7 @@ pub struct CounterWidget {
 
 impl CustomWidget for CounterWidget {
     type Msg = CounterWidgetMsg;
-    type Output = CounterWidgetOutMsg;
+    type Output = ();
     type Input = i32;
 
     fn init(data: Self::Input) -> Self {
