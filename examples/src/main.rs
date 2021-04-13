@@ -28,7 +28,7 @@ fn build_ui(application: &gtk4::Application) {
     let tx_ = tx.clone();
     let mut counter = SimpleCounter::new(move | msg|
         tx_.send(AppMsg::CounterMsg(msg)).expect("Could not send msg")
-    );
+    , Some(2));
     notebook.append_page(counter.view(), Some(&gtk4::Label::new(Some("Counter"))));
 
     rx.attach(None, move |msg| {

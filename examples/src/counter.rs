@@ -18,9 +18,13 @@ pub struct SimpleCounter {
 
 impl Widget for SimpleCounter {
     type Msg = CounterMsg;
-    fn create<T: 'static + Clone + Fn(Self::Msg)>(sender: T) -> Self {
+    type View = gtk4::Box;
+    type Input = i32;
+
+    fn create<T: 'static + Clone + Fn(Self::Msg)>(sender: T, input: Option<Self::Input>) -> Self {
         let container = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
-        let lbl = gtk4::Label::new(Some(&format!("Count: {}", 0)));
+        let start = input.unwrap_or(0);
+        let lbl = gtk4::Label::new(Some(&format!("Count: {}", start)));
         let btn = gtk4::ButtonBuilder::new()
             .label("Dec")
             .build();
@@ -45,7 +49,7 @@ impl Widget for SimpleCounter {
 
         Self {
             lbl,
-            count: 0,
+            count: start,
             container,
         }
     }
@@ -67,7 +71,7 @@ impl Widget for SimpleCounter {
         Command::None
     }
 
-    fn view(&self) -> &gtk4::Box {
+    fn view(&self) -> &Self::View {
         &self.container
     }
 }
