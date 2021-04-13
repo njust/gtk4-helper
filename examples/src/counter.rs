@@ -3,80 +3,76 @@ use gtk4_helper::{
     gtk4,
 };
 
-#[derive(Debug, Clone)]
-pub enum CounterWidgetMsg {
+#[derive(Clone)]
+pub enum CounterMsg {
     Inc,
-    AsyncInc,
-    Dec,
+    IncAsync,
+    Dec
 }
 
-pub struct CounterWidget {
-    counter: i32,
+pub struct SimpleCounter {
     lbl: gtk4::Label,
+    container: gtk4::Box,
+    count: i32,
 }
 
-impl CustomWidget for CounterWidget {
-    type Msg = CounterWidgetMsg;
-    type Output = ();
-    type Input = i32;
-
-    fn init(data: Self::Input) -> Self {
-        let lbl = gtk4::Label::new(Some(&format!("Count: {}", data)));
-        Self {
-            counter: data,
-            lbl
-        }
-    }
-
-    fn create(&self, container: &gtk4::Box, action_sender: Sender<Self::Msg>) {
+impl Widget for SimpleCounter {
+    type Msg = CounterMsg;
+    fn create<T: 'static + Clone + Fn(Self::Msg)>(sender: T) -> Self {
+        let container = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
+        let lbl = gtk4::Label::new(Some(&format!("Count: {}", 0)));
         let btn = gtk4::ButtonBuilder::new()
             .label("Dec")
             .build();
 
-        let tx = action_sender.clone();
+        let tx = sender.clone();
         btn.connect_clicked(move |_| {
-            tx.send(CounterWidgetMsg::Dec).expect("Could not send dec");
+            tx(CounterMsg::Dec);
         });
 
         container.append(&btn);
-        container.append(&self.lbl);
+        container.append(&lbl);
 
         let btn = gtk4::ButtonBuilder::new()
             .label("Inc")
             .build();
 
-
-        let tx = action_sender.clone();
+        let tx = sender.clone();
         btn.connect_clicked(move |_| {
-            tx.send(CounterWidgetMsg::AsyncInc).expect("Could not send inc");
+            tx(CounterMsg::IncAsync);
         });
         container.append(&btn);
-    }
 
-    fn update(&mut self, msg: CounterWidgetMsg) -> WidgetMsg<Self> {
-        match msg {
-            CounterWidgetMsg::Inc => {
-                self.update_counter(true)
-            }
-            CounterWidgetMsg::Dec => {
-                self.update_counter(false)
-            }
-            CounterWidgetMsg::AsyncInc => {
-                self.run_async(inc_async())
-            }
+        Self {
+            lbl,
+            count: 0,
+            container,
         }
     }
-}
 
-impl CounterWidget {
-    fn update_counter(&mut self, inc: bool) -> WidgetMsg<Self> {
-        self.counter = if inc { self.counter + 1 } else { self.counter -1 };
-        self.lbl.set_text(&format!("Count: {}", self.counter));
-        self.msg_none()
+    fn update(&mut self, msg: Self::Msg) -> Command<Self::Msg> {
+        match msg {
+            CounterMsg::Inc => {
+                self.count += 1;
+                self.lbl.set_text(&format!("Count: {}", self.count));
+            }
+            CounterMsg::Dec => {
+                self.count -= 1;
+                self.lbl.set_text(&format!("Count: {}", self.count));
+            }
+            CounterMsg::IncAsync => {
+                return self.run_async(inc_async());
+            }
+        }
+        Command::None
+    }
+
+    fn view(&self) -> &gtk4::Box {
+        &self.container
     }
 }
 
-async fn inc_async() -> CounterWidgetMsg {
-    tokio::time::delay_for(std::time::Duration::from_millis(100)).await;
-    CounterWidgetMsg::Inc
+async fn inc_async() -> CounterMsg {
+    tokio::time::delay_for(std::time::Duration::from_millis(200)).await;
+    CounterMsg::Inc
 }

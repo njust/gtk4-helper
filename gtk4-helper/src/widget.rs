@@ -1,97 +1,54 @@
-use std::cell::{RefCell, Ref};
-use std::rc::Rc;
-use std::pin::Pin;
 use futures::Future;
-use crate::glib::{MainContext, Sender, self};
-use gtk4::{Orientation};
+use std::pin::Pin;
+use crate::glib::MainContext;
+use std::rc::Rc;
 
-pub enum WidgetMsg<Widget: CustomWidget> {
+pub enum Command<T> {
     None,
-    Out(Widget::Output),
-    Defer(Pin<Box<dyn Future<Output = Widget::Msg> + 'static>>)
+    Defer(Pin<Box<dyn Future<Output = T> + 'static>>),
 }
 
-#[allow(dead_code)]
-pub trait CustomWidget: Sized + 'static {
-    type Msg: Clone;
-    type Output: Clone;
-    type Input: Default;
-
-    fn init(data: Self::Input) -> Self;
-    fn create(&self, container: &gtk4::Box, tx: Sender<Self::Msg>);
-    fn update(&mut self, msg: Self::Msg) -> WidgetMsg<Self>;
-    fn new() -> WidgetWrapper<Self> {
-        WidgetWrapper::<Self>::new()
-    }
-
-    fn container() -> gtk4::Box {
-        gtk4::Box::new(Orientation::Vertical, 0)
-    }
-
-    fn run_async<T: Future<Output = Self::Msg> + 'static>(&self, t: T) -> WidgetMsg<Self> {
-        WidgetMsg::Defer(Box::pin(t))
-    }
-
-    fn msg_none(&self) -> WidgetMsg<Self> {
-        WidgetMsg::None
-    }
-
-    fn msg_out(&self, msg: Self::Output) -> WidgetMsg<Self> {
-        WidgetMsg::Out(msg)
-    }
-
-    fn with_options<T: 'static + Clone + Fn(Self::Output)>(tx: T, data: Self::Input) -> WidgetWrapper<Self> {
-        WidgetWrapper::<Self>::with_options(tx, data)
-    }
+pub struct WidgetContainer<W: Widget> {
+    widget: Box<W>,
+    tx: Rc<dyn Fn(W::Msg)>,
 }
 
-pub struct WidgetWrapper<T: CustomWidget> {
-    view: Rc<RefCell<T>>,
-    container: gtk4::Box,
-}
-
-#[allow(dead_code)]
-impl<W: 'static + CustomWidget> WidgetWrapper<W> {
-    pub fn new() -> WidgetWrapper<W> {
-        Self::with_options(|_| {}, W::Input::default())
-    }
-
-    pub fn with_options<T: 'static + Clone + Fn(W::Output)>(out_tx: T, data: W::Input) -> WidgetWrapper<W> {
-        let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        let widget_view = Rc::new(RefCell::new(W::init(data)));
-        let view = widget_view.clone();
-        let container = W::container();
-        view.borrow().create(&container, tx.clone());
-
-        let tx = tx.clone();
-        rx.attach(None, move |msg| {
-            let out_msg = view.borrow_mut().update(msg);
-            match out_msg {
-                WidgetMsg::Out(msg) => {
-                    out_tx(msg);
-                }
-                WidgetMsg::Defer(f) => {
-                    let tx = tx.clone();
-                    MainContext::ref_thread_default().spawn_local(async move {
-                        tx.send(f.await).expect("Could not send msg");
-                    });
-                }
-                WidgetMsg::None => ()
-            }
-            glib::Continue(true)
-        });
-
+impl<W: Widget> WidgetContainer<W> {
+    pub fn new<T: 'static + Clone + Fn(W::Msg)>(sender: T) -> WidgetContainer<W> {
         Self {
-            view: widget_view,
-            container
+            widget: Box::new(W::create(sender.clone())),
+            tx: Rc::new(sender.clone())
+        }
+    }
+
+    pub fn update(&mut self, msg: W::Msg) {
+        let res = self.widget.update(msg);
+        match res {
+            Command::Defer(f) => {
+                let tx = self.tx.clone();
+                MainContext::ref_thread_default().spawn_local(async move {
+                    tx(f.await);
+                });
+            }
+            _ => ()
         }
     }
 
     pub fn view(&self) -> &gtk4::Box {
-        &self.container
+        self.widget.view()
+    }
+}
+
+pub trait Widget: Sized + 'static {
+    type Msg: Clone;
+    fn create<T: 'static + Clone + Fn(Self::Msg)>(sender: T) -> Self;
+    fn new<T: 'static + Clone + Fn(Self::Msg)>(sender: T) -> WidgetContainer<Self> {
+        WidgetContainer::<Self>::new(sender)
     }
 
-    pub fn get(&self) -> Ref<W> {
-        self.view.borrow()
+    fn update(&mut self, msg: Self::Msg) -> Command<Self::Msg>;
+    fn view(&self) -> &gtk4::Box;
+    fn run_async<T: Future<Output = Self::Msg> + 'static>(&self, t: T) -> Command<Self::Msg> {
+        Command::Defer(Box::pin(t))
     }
 }
