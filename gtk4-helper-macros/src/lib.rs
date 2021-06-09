@@ -118,7 +118,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
     match field.field_mapper.as_str() {
         "String" => {
             quote!(
-                    glib::ParamSpec::string(
+                    glib::ParamSpec::new_string(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -130,7 +130,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         "i32" => {
             let (min, max) = get_min_max::<i32>(&field).unwrap();
             quote!(
-                    glib::ParamSpec::int(
+                    glib::ParamSpec::new_int(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -144,7 +144,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         "f32" => {
             let (min, max) = get_min_max::<f32>(&field).unwrap();
             quote!(
-                    glib::ParamSpec::float(
+                    glib::ParamSpec::new_float(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -158,7 +158,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         "f64" => {
             let (min, max) = get_min_max::<f64>(&field).unwrap();
             quote!(
-                    glib::ParamSpec::double(
+                    glib::ParamSpec::new_double(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -172,7 +172,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         "i64" => {
             let (min, max) = get_min_max::<i64>(&field).unwrap();
             quote!(
-                    glib::ParamSpec::int64(
+                    glib::ParamSpec::new_int64(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -185,7 +185,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         }
         "bool" => {
             quote!(
-                    glib::ParamSpec::boolean(
+                    glib::ParamSpec::new_boolean(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -197,7 +197,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         _ => {
             let ty = syn::Ident::new(&field.field_mapper,  proc_macro2::Span::call_site());
             quote!(
-                    glib::ParamSpec::object(
+                    glib::ParamSpec::new_object(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -242,11 +242,11 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let optional = field.field_type == "Option";
         if optional {
             property_setter.push(quote!(
-                #field_ident: obj.get_property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch")
+                #field_ident: obj.property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch")
             ));
         }else {
             property_setter.push(quote!(
-                #field_ident: obj.get_property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch").unwrap()
+                #field_ident: obj.property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch")
             ));
         }
 
@@ -292,11 +292,11 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             fn set_property(&self, _obj: &Self::Type, id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
-                self.data.borrow_mut().insert(pspec.get_name().to_string(), value.to_owned());
+                self.data.borrow_mut().insert(pspec.name().to_string(), value.to_owned());
             }
 
-            fn get_property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
-                self.data.borrow().get(pspec.get_name()).map(|v| v.to_owned()).ok_or(()).clone().unwrap()
+            fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+                self.data.borrow().get(pspec.name()).map(|v| v.to_owned()).ok_or(()).clone().unwrap()
             }
         }
 
@@ -355,14 +355,16 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
             fn to_value(&self) -> Value {
                 self.to_object().to_value()
             }
-            fn to_value_type(&self) -> Type {
+            fn value_type(&self) -> Type {
                 #ty::static_type()
             }
         }
 
-        impl<'a> FromValueOptional<'a> for #ty {
-            unsafe fn from_value_optional(value: &'a Value) -> Option<Self> {
-                value.downcast_ref::<glib::Object>().and_then(|s| s.get()).and_then(|o| Some(#ty::from_object(&o)))
+        unsafe impl<'a> FromValue<'a> for #ty {
+            type Checker = GenericValueTypeOrNoneChecker<#ty>;
+
+            unsafe fn from_value(value: &'a Value) -> Self {
+                value.get::<glib::Object>().and_then(|o| Ok(#ty::from_object(&o))).unwrap()
             }
         }
 

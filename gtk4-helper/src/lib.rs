@@ -1,7 +1,7 @@
-pub use gtk4;
-pub use gtk4::glib;
+pub use gtk;
+pub use gtk::glib;
 pub use tokio;
-pub use gtk4::gio;
+pub use gtk::gio;
 pub use once_cell;
 pub use static_assertions;
 pub use futures;

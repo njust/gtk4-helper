@@ -1,10 +1,9 @@
 use gtk4_helper::{
     prelude::*,
-    gtk4,
+    gtk,
     glib
 };
 
-use std::env::args;
 use crate::counter::{CounterMsg, SimpleCounter};
 
 mod counter;
@@ -17,19 +16,19 @@ pub enum AppMsg {
     CounterMsg(CounterMsg),
 }
 
-fn build_ui(application: &gtk4::Application) {
-    let window = gtk4::ApplicationWindow::new(application);
+fn build_ui(application: &gtk::Application) {
+    let window = gtk::ApplicationWindow::new(application);
     window.set_title(Some("GTK Test Program"));
     window.set_default_size(1024, 768);
 
-    let notebook = gtk4::Notebook::new();
+    let notebook = gtk::Notebook::new();
 
     let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     let tx_ = tx.clone();
     let mut counter = SimpleCounter::new(move | msg|
         tx_.send(AppMsg::CounterMsg(msg)).expect("Could not send msg")
     , Some(2));
-    notebook.append_page(counter.view(), Some(&gtk4::Label::new(Some("Counter"))));
+    notebook.append_page(counter.view(), Some(&gtk::Label::new(Some("Counter"))));
 
     rx.attach(None, move |msg| {
         match msg {
@@ -42,10 +41,10 @@ fn build_ui(application: &gtk4::Application) {
 
     // expressions::test();
     let list_view = list_view::list();
-    notebook.append_page(&list_view, Some(&gtk4::Label::new(Some("List view"))));
+    notebook.append_page(&list_view, Some(&gtk::Label::new(Some("List view"))));
 
     let column_view = column_view::list();
-    notebook.append_page(&column_view, Some(&gtk4::Label::new(Some("Column view"))));
+    notebook.append_page(&column_view, Some(&gtk::Label::new(Some("Column view"))));
 
     window.set_child(Some(&notebook));
     window.show();
@@ -54,12 +53,11 @@ fn build_ui(application: &gtk4::Application) {
 #[tokio::main]
 async fn main() {
     let application =
-        gtk4::Application::new(Some("com.github.gtk-rs.examples.basic"), Default::default())
-            .expect("Initialization failed...");
+        gtk::Application::new(Some("com.github.gtk-rs.examples.basic"), Default::default());
 
     application.connect_activate(|app| {
         build_ui(app);
     });
 
-    application.run(&args().collect::<Vec<_>>());
+    application.run();
 }

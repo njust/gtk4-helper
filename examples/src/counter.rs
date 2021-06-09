@@ -1,6 +1,6 @@
 use gtk4_helper::{
     prelude::*,
-    gtk4,
+    gtk,
 };
 
 #[derive(Clone)]
@@ -11,21 +11,21 @@ pub enum CounterMsg {
 }
 
 pub struct SimpleCounter {
-    lbl: gtk4::Label,
-    container: gtk4::Box,
+    lbl: gtk::Label,
+    container: gtk::Box,
     count: i32,
 }
 
 impl Widget for SimpleCounter {
     type Msg = CounterMsg;
-    type View = gtk4::Box;
+    type View = gtk::Box;
     type Input = i32;
 
     fn create<T: 'static + Clone + Fn(Self::Msg)>(sender: T, input: Option<Self::Input>) -> Self {
-        let container = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
+        let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
         let start = input.unwrap_or(0);
-        let lbl = gtk4::Label::new(Some(&format!("Count: {}", start)));
-        let btn = gtk4::ButtonBuilder::new()
+        let lbl = gtk::Label::new(Some(&format!("Count: {}", start)));
+        let btn = gtk::ButtonBuilder::new()
             .label("Dec")
             .build();
 
@@ -37,7 +37,7 @@ impl Widget for SimpleCounter {
         container.append(&btn);
         container.append(&lbl);
 
-        let btn = gtk4::ButtonBuilder::new()
+        let btn = gtk::ButtonBuilder::new()
             .label("Inc")
             .build();
 

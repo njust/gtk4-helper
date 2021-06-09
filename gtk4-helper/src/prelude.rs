@@ -1,4 +1,4 @@
-pub use gtk4::{
+pub use gtk::{
     Application,
     ApplicationWindow,
     prelude::*
