@@ -14,7 +14,7 @@ pub struct WidgetContainer<W: Widget> {
 }
 
 impl<W: Widget> WidgetContainer<W> {
-    pub fn new<T: 'static + Clone + Fn(W::Msg)>(sender: T, input: Option<W::Input>) -> WidgetContainer<W> {
+    pub fn new<T: MsgHandler<W::Msg> + Clone>(sender: T, input: Option<W::Input>) -> WidgetContainer<W> {
         Self {
             widget: Box::new(W::create(sender.clone(), input)),
             tx: Rc::new(sender.clone())
@@ -39,12 +39,15 @@ impl<W: Widget> WidgetContainer<W> {
     }
 }
 
+pub trait MsgHandler<T>: 'static + Send + Sync + Fn(T) {}
+impl<A, T> MsgHandler<T> for A where A: 'static + Send + Sync + Fn(T) {}
+
 pub trait Widget: Sized + 'static {
     type Msg: Clone;
     type View;
     type Input;
-    fn create<T: 'static + Clone + Fn(Self::Msg)>(sender: T, input: Option<Self::Input>) -> Self;
-    fn new<T: 'static + Clone + Fn(Self::Msg)>(sender: T, input: Option<Self::Input>) -> WidgetContainer<Self> {
+    fn create<T: MsgHandler<Self::Msg> + Clone>(sender: T, input: Option<Self::Input>) -> Self;
+    fn new<T: MsgHandler<Self::Msg> + Clone>(sender: T, input: Option<Self::Input>) -> WidgetContainer<Self> {
         WidgetContainer::<Self>::new(sender, input)
     }
 

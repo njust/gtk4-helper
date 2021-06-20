@@ -18,19 +18,22 @@ fn create_item(_factory: &gtk::SignalListItemFactory, item: &gtk::ListItem, prop
     }
 }
 
-fn create_column(column_view: &ColumnView, ty: glib::Type, property: &'static str, title: &str) {
+fn create_column(column_view: &ColumnView, ty: glib::Type, property: &'static str, title: &str, num: bool) {
     let column_factory = gtk::SignalListItemFactory::new();
     column_factory.connect_bind(move |a, item| {
         create_item(a, item, property)
     });
 
     let prop_exp = gtk::PropertyExpression::new(ty, NONE_EXPRESSION, property);
-    column_view.append_column(&gtk::ColumnViewColumnBuilder::new()
+    let mut col_builder = gtk::ColumnViewColumnBuilder::new()
         .title(title)
-        .factory(&column_factory)
-        .sorter(&gtk::StringSorter::new(Some(&prop_exp)))
-        .build()
-    );
+        .factory(&column_factory);
+    col_builder = if !num {
+        col_builder.sorter(&gtk::StringSorter::new(Some(&prop_exp)))
+    }else {
+        col_builder.sorter(&gtk::NumericSorter::new(Some(&prop_exp)))
+    };
+    column_view.append_column(&col_builder.build());
 }
 
 
@@ -51,8 +54,9 @@ pub fn list() -> gtk::Box {
         sort_view.set_sorter(Some(&so));
     }
 
-    create_column(&column_view, Person::static_type(),Person::name,"Name");
-    create_column(&column_view, Person::static_type(), Person::surname, "Surname");
+    create_column(&column_view, Person::static_type(),Person::name,"Name", false);
+    create_column(&column_view, Person::static_type(), Person::surname, "Surname", false);
+    create_column(&column_view, Person::static_type(), Person::age, "Age", true);
 
 
     let container = gtk::Box::new(Orientation::Vertical, 0);

@@ -22,12 +22,11 @@ fn build_ui(application: &gtk::Application) {
     window.set_default_size(1024, 768);
 
     let notebook = gtk::Notebook::new();
-
     let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-    let tx_ = tx.clone();
-    let mut counter = SimpleCounter::new(move | msg|
-        tx_.send(AppMsg::CounterMsg(msg)).expect("Could not send msg")
-    , Some(2));
+
+    let mut counter = SimpleCounter::new(move |m| {
+        tx.send(AppMsg::CounterMsg(m)).expect("Could not send msg");
+    }, Some(2));
     notebook.append_page(counter.view(), Some(&gtk::Label::new(Some("Counter"))));
 
     rx.attach(None, move |msg| {

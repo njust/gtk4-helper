@@ -21,7 +21,7 @@ impl Widget for SimpleCounter {
     type View = gtk::Box;
     type Input = i32;
 
-    fn create<T: 'static + Clone + Fn(Self::Msg)>(sender: T, input: Option<Self::Input>) -> Self {
+    fn create<T: MsgHandler<Self::Msg> + Clone>(sender: T, input: Option<Self::Input>) -> Self {
         let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
         let start = input.unwrap_or(0);
         let lbl = gtk::Label::new(Some(&format!("Count: {}", start)));
@@ -77,6 +77,5 @@ impl Widget for SimpleCounter {
 }
 
 async fn inc_async() -> CounterMsg {
-    tokio::time::delay_for(std::time::Duration::from_millis(200)).await;
     CounterMsg::Inc
 }
