@@ -47,8 +47,12 @@ pub trait Widget: Sized + 'static {
     type View;
     type Input;
     fn create<T: MsgHandler<Self::Msg> + Clone>(sender: T, input: Option<Self::Input>) -> Self;
-    fn new<T: MsgHandler<Self::Msg> + Clone>(sender: T, input: Option<Self::Input>) -> WidgetContainer<Self> {
-        WidgetContainer::<Self>::new(sender, input)
+    fn new<T: MsgHandler<Self::Msg> + Clone>(sender: T) -> WidgetContainer<Self> {
+        WidgetContainer::<Self>::new(sender, None)
+    }
+
+    fn new_with_data<T: MsgHandler<Self::Msg> + Clone>(sender: T, input: Self::Input) -> WidgetContainer<Self> {
+        WidgetContainer::<Self>::new(sender, Some(input))
     }
 
     fn update(&mut self, msg: Self::Msg) -> Command<Self::Msg>;

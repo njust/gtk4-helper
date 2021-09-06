@@ -19,13 +19,12 @@ pub fn list() -> gtk::Box {
     let selection_model = gtk::SingleSelection::new(Some(&list_store));
     let item_factory = gtk::SignalListItemFactory::new();
 
-    item_factory.connect_bind(move |_, b| {
-        if let Some(item) = b.item()
-        {
+    item_factory.connect_bind(move |_, list_item| {
+        if let Some(item) = list_item.item() {
             let e = gtk::Entry::new();
             item.bind_property(Person::name, &e, "text")
                 .flags(glib::BindingFlags::DEFAULT |glib::BindingFlags::SYNC_CREATE | glib::BindingFlags::BIDIRECTIONAL).build();
-            b.set_child(Some(&e));
+            list_item.set_child(Some(&e));
         }
     });
 
@@ -39,8 +38,8 @@ pub fn list() -> gtk::Box {
     let btn = gtk::Button::with_label("Check");
     btn.connect_clicked(move |_| {
         for i in 0..list_store.n_items() {
-            if let Some(o) = list_store.item(i) {
-                let item = Person::from_object(&o);
+            if let Some(obj) = list_store.item(i) {
+                let item = Person::from_object(&obj);
                 println!("{:?}", item);
             }
         }
