@@ -9,3 +9,4 @@ pub use futures;
 pub mod widget;
 pub mod prelude;
 pub mod model;
+pub mod tree;
