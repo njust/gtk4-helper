@@ -37,6 +37,10 @@ pub fn list() -> gtk::Box {
     let container = gtk::Box::new(Orientation::Vertical, 0);
     let btn = gtk::Button::with_label("Check");
     btn.connect_clicked(move |_| {
+        if let Some(obj) = list_store.item(0) {
+            obj.set_properties(&[(Person::name, &"gerda")]);
+        }
+
         for i in 0..list_store.n_items() {
             if let Some(obj) = list_store.item(i) {
                 let item = Person::from_object(&obj);
