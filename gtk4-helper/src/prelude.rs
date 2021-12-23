@@ -9,4 +9,4 @@ pub use crate::glib::{
 };
 
 pub use tokio;
-pub use crate::widget::*;
+pub use crate::component::*;
