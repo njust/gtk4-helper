@@ -46,7 +46,7 @@ impl<W: Component> ComponentContainer<W> {
                 MainContext::ref_thread_default().spawn_local(async move {
                     let r = f.await;
                     tx(r)
-                })
+                });
             }
             _ => ()
         }
