@@ -16,7 +16,7 @@ pub struct SimpleCounter {
     count: i32,
 }
 
-impl Widget for SimpleCounter {
+impl Component for SimpleCounter {
     type Msg = CounterMsg;
     type View = gtk::Box;
     type Input = i32;
