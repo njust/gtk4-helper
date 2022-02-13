@@ -6,7 +6,7 @@ pub use once_cell;
 pub use static_assertions;
 pub use futures;
 
-pub mod widget;
+pub mod component;
 pub mod prelude;
 pub mod model;
 pub mod tree;
