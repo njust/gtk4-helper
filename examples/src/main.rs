@@ -11,7 +11,7 @@ mod list_view;
 mod column_view;
 mod models;
 mod expressions;
-mod tree_view;
+// mod tree_view;
 
 pub enum AppMsg {
     CounterMsg(CounterMsg),
@@ -25,8 +25,8 @@ fn build_ui(application: &gtk::Application) {
     let notebook = gtk::Notebook::new();
     let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
-    let tree_view = tree_view::tree();
-    notebook.append_page(&tree_view, Some(&gtk::Label::new(Some("Tree view"))));
+    // let tree_view = tree_view::tree();
+    // notebook.append_page(&tree_view, Some(&gtk::Label::new(Some("Tree view"))));
 
     let mut counter = SimpleCounter::new_with_data(move |m| {
         tx.send(AppMsg::CounterMsg(m)).expect("Could not send msg");
