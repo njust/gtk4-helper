@@ -28,7 +28,7 @@ pub fn list() -> gtk::Box {
         }
     });
 
-    let list_view = gtk::ListViewBuilder::new()
+    let list_view = gtk::builders::ListViewBuilder::new()
         .factory(&item_factory)
         .model(&selection_model)
         .build();

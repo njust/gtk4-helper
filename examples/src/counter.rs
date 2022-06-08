@@ -25,7 +25,7 @@ impl Component for SimpleCounter {
         let container = gtk::Box::new(gtk::Orientation::Vertical, 0);
         let start = input.unwrap_or(0);
         let lbl = gtk::Label::new(Some(&format!("Count: {}", start)));
-        let btn = gtk::ButtonBuilder::new()
+        let btn = gtk::builders::ButtonBuilder::new()
             .label("Dec")
             .build();
 
@@ -37,7 +37,7 @@ impl Component for SimpleCounter {
         container.append(&btn);
         container.append(&lbl);
 
-        let btn = gtk::ButtonBuilder::new()
+        let btn = gtk::builders::ButtonBuilder::new()
             .label("Inc")
             .build();
 

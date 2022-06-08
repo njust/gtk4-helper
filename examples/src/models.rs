@@ -21,6 +21,7 @@ pub struct Person {
 }
 
 pub fn get_persons(n: i32) -> Vec<Person>  {
+    // glib::ParamSpecString::n
     (0..n).map(|i| {
         Person {
             name: if i % 2 == 0 {format!("bbb Name {}", i)} else {format!("aaa Name {}", i)},

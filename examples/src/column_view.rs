@@ -5,7 +5,8 @@ use gtk4_helper::{
     model::prelude::*,
 };
 
-use gtk4_helper::gtk::{Orientation, NONE_EXPRESSION, NONE_SORTER, ColumnView};
+use gtk4_helper::gtk::{Orientation, ColumnView};
+use crate::gtk::{Expression, Sorter};
 
 use crate::models::{Person, get_persons};
 
@@ -24,8 +25,8 @@ fn create_column(column_view: &ColumnView, ty: glib::Type, property: &'static st
         create_item(a, item, property)
     });
 
-    let prop_exp = gtk::PropertyExpression::new(ty, NONE_EXPRESSION, property);
-    let mut col_builder = gtk::ColumnViewColumnBuilder::new()
+    let prop_exp = gtk::PropertyExpression::new(ty, Option::<&Expression>::None, property);
+    let mut col_builder = gtk::builders::ColumnViewColumnBuilder::new()
         .title(title)
         .factory(&column_factory);
     col_builder = if !num {
@@ -45,8 +46,8 @@ pub fn list() -> gtk::Box {
         list_store.append(&obj);
     }
 
-    let sort_view = gtk::SortListModel::new(Some(&list_store), NONE_SORTER);
-    let column_view = gtk::ColumnViewBuilder::new()
+    let sort_view = gtk::SortListModel::new(Some(&list_store), Option::<&Sorter>::None);
+    let column_view = gtk::builders::ColumnViewBuilder::new()
         .model(&gtk::SingleSelection::new(Some(&sort_view)))
         .build();
 

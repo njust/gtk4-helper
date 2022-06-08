@@ -118,7 +118,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
     match field.field_mapper.as_str() {
         "String" => {
             quote!(
-                    glib::ParamSpec::new_string(
+                    glib::ParamSpecString::new(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -130,7 +130,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         "i32" => {
             let (min, max) = get_min_max::<i32>(&field).unwrap();
             quote!(
-                    glib::ParamSpec::new_int(
+                    glib::ParamSpecInt::new(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -144,7 +144,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         "f32" => {
             let (min, max) = get_min_max::<f32>(&field).unwrap();
             quote!(
-                    glib::ParamSpec::new_float(
+                    glib::ParamSpecFloat::new(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -158,7 +158,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         "f64" => {
             let (min, max) = get_min_max::<f64>(&field).unwrap();
             quote!(
-                    glib::ParamSpec::new_double(
+                    glib::ParamSpecDouble::new(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -172,7 +172,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         "i64" => {
             let (min, max) = get_min_max::<i64>(&field).unwrap();
             quote!(
-                    glib::ParamSpec::new_int64(
+                    glib::ParamSpecInt64::new(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -185,7 +185,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         }
         "bool" => {
             quote!(
-                    glib::ParamSpec::new_boolean(
+                    glib::ParamSpecBoolean::new(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -197,7 +197,7 @@ fn param_desc_for_field(field: &FieldData) -> TokenStream2 {
         _ => {
             let ty = syn::Ident::new(&field.field_mapper,  proc_macro2::Span::call_site());
             quote!(
-                    glib::ParamSpec::new_object(
+                    glib::ParamSpecObject::new(
                         #field_name,
                         #field_name,
                         #field_name,
@@ -242,11 +242,11 @@ pub fn model(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let optional = field.field_type == "Option";
         if optional {
             property_setter.push(quote!(
-                #field_ident: obj.property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch")
+                #field_ident: obj.property_value(#field_name).get::<#field_type>().expect("Property type mismatch")
             ));
         }else {
             property_setter.push(quote!(
-                #field_ident: obj.property(#field_name).expect("No Property").get::<#field_type>().expect("Property type mismatch")
+                #field_ident: obj.property_value(#field_name).get::<#field_type>().expect("Property type mismatch")
             ));
         }
 
